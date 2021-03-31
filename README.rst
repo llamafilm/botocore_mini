@@ -1,108 +1,69 @@
 botocore
 ========
+A minified version of Amazon's botocore.
 
-.. image:: https://secure.travis-ci.org/boto/botocore.png?branch=develop
-   :target: http://travis-ci.org/boto/botocore
+Purpose
+-------
+I like writing small Python apps to interact with AWS services using ``boto3``.  Unfortunately this package depends on ``botocore`` which is extremely large because it supports hundreds of services, as well as maintaining old API versions for backwards compatibility.  I only need a tiny portion of this module, so I created a "minified" version which reduces app size and launch time.  This is especially helpful when packaging a single file binary with PyInstaller because it has to unpack all the files every time you launch.
 
-.. image:: https://codecov.io/github/boto/botocore/coverage.svg?branch=develop
-    :target: https://codecov.io/github/boto/botocore?branch=develop
+This build currently includes the following services which are useful to me:
 
+- ec2
+- iam
+- pricing
+- s3
+- sesv2
+- sns
+- sts
 
-A low-level interface to a growing number of Amazon Web Services. The
-botocore package is the foundation for the
-`AWS CLI <https://github.com/aws/aws-cli>`__ as well as
-`boto3 <https://github.com/boto/boto3>`__.
+Impact
+------
+Here is a simple program to compare performance of the minified package against the regular botocore.
 
-On 10/29/2020 deprecation for Python 3.4 and Python 3.5 was announced and support
-was dropped on 02/01/2021. To avoid disruption, customers using Botocore
-on Python 3.4 or 3.5 may need to upgrade their version of Python or pin the
-version of Botocore. For more information, see
-this `blog post <https://aws.amazon.com/blogs/developer/announcing-the-end-of-support-for-python-3-4-and-3-5-in-the-aws-sdk-for-python-and-aws-cli-v1/>`__.
+.. code-block:: python
 
-Getting Started
----------------
-Assuming that you have Python and ``virtualenv`` installed, set up your environment and install the required dependencies like this or you can install the library using ``pip``:
+    import boto3
+    s3 = boto3.client('s3')
+    print('Finished!')
 
-.. code-block:: sh
+I package this as a single file binary with ``pyinstaller -F boto-speed.py``.  On Windows, the execution time is 67% faster and the binary is reduced from 9.6MB to 8.1MB.
 
-    $ git clone https://github.com/boto/botocore.git
-    $ cd botocore
-    $ virtualenv venv
-    ...
-    $ . venv/bin/activate
-    $ pip install -r requirements.txt
-    $ pip install -e .
+.. code-block:: powershell
 
-.. code-block:: sh
-
-    $ pip install botocore
+    (Measure-Command {boto-speed-mini.exe}).TotalSeconds
+    3.3924868
     
-Using Botocore
-~~~~~~~~~~~~~~
-After installing botocore 
+    (Measure-Command {boto-speed.exe}).TotalSeconds
+    10.4119532
 
-Next, set up credentials (in e.g. ``~/.aws/credentials``):
+On macOS the execution time is 45% faster and the binary is reduced from 16.4MB to 7.9MB.
 
-.. code-block:: ini
+.. code-block::
 
-    [default]
-    aws_access_key_id = YOUR_KEY
-    aws_secret_access_key = YOUR_SECRET
+    $ /usr/bin/time boto-speed-mini 
+    Finished!
+            0.58 real         0.24 user         0.12 sys
+    $ /usr/bin/time boto-speed
+    Finished!
+            1.05 real         0.39 user         0.46 sys
 
-Then, set up a default region (in e.g. ``~/.aws/config``):
+Usage
+-----
+I recommend installing inside a virtual environment, and also install ``PyInstaller`` there.  I kept the package name and version unchanged so you can install ``boto3`` the usual way and it will recognize this automatically.
 
-.. code-block:: ini
+.. code-block:: bash
 
-   [default]
-   region=us-east-1
-    
-Other credentials configuration method can be found `here <https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html>`__
+    python3 -m venv env
+    source env/bin/activate
+    pip install git+https://github.com/llamafilm/botocore_mini.git
+    pip install boto3
 
-Then, from a Python interpreter:
+In Python, you can validate it's working
 
 .. code-block:: python
 
     >>> import botocore.session
     >>> session = botocore.session.get_session()
-    >>> client = session.create_client('ec2')
-    >>> print(client.describe_instances())
+    >>> print(session.get_available_services())
 
-
-Getting Help
-------------
-
-We use GitHub issues for tracking bugs and feature requests and have limited
-bandwidth to address them. Please use these community resources for getting
-help. Please note many of the same resources available for ``boto3`` are
-applicable for ``botocore``:
-
-* Ask a question on `Stack Overflow <https://stackoverflow.com/>`__ and tag it with `boto3 <https://stackoverflow.com/questions/tagged/boto3>`__
-* Come join the AWS Python community chat on `gitter <https://gitter.im/boto/boto3>`__
-* Open a support ticket with `AWS Support <https://console.aws.amazon.com/support/home#/>`__
-* If it turns out that you may have found a bug, please `open an issue <https://github.com/boto/botocore/issues/new>`__
-
-
-Contributing
-------------
-
-We value feedback and contributions from our community. Whether it's a bug report, new feature, correction, or additional documentation, we welcome your issues and pull requests. Please read through this `CONTRIBUTING <https://github.com/boto/botocore/blob/develop/CONTRIBUTING.rst>`__ document before submitting any issues or pull requests to ensure we have all the necessary information to effectively respond to your contribution. 
-
-
-Maintenance and Support for SDK Major Versions
-----------------------------------------------
-
-Botocore was made generally available on 06/22/2015 and is currently in the full support phase of the availability life cycle.
-
-For information about maintenance and support for SDK major versions and their underlying dependencies, see the following in the AWS SDKs and Tools Shared Configuration and Credentials Reference Guide:
-
-* `AWS SDKs and Tools Maintenance Policy <https://docs.aws.amazon.com/credref/latest/refdocs/maint-policy.html>`__
-* `AWS SDKs and Tools Version Support Matrix <https://docs.aws.amazon.com/credref/latest/refdocs/version-support-matrix.html>`__
-
-
-More Resources
---------------
-
-* `NOTICE <https://github.com/boto/botocore/blob/develop/NOTICE>`__
-* `Changelog <https://github.com/boto/botocore/blob/develop/CHANGELOG.rst>`__
-* `License <https://github.com/boto/botocore/blob/develop/LICENSE.txt>`__
-
+More details about the package itself are `upstream <https://github.com/boto/botocore>`__.
